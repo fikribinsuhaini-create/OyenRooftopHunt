@@ -18,7 +18,7 @@ const CONFIG = {
   gravity       : 950,
 
   // ── Lives ────────────────────────────────────────────────
-  lives         : 3,
+  lives         : 10,
   invincibleTime: 1.5,    // saat invincible selepas kena
 
   // ── Extra life collectible ────────────────────────────────
