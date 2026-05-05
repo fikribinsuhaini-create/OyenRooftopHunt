@@ -1,0 +1,155 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Oyen Rooftop Hunt ðŸ±</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body {
+      width:100%; height:100%;
+      background:#050510;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:flex-start;
+      overflow:hidden;
+      user-select:none; -webkit-user-select:none;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    #gameWrap{
+      width:100%;
+      flex:1 1 auto;
+      min-height:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      z-index:0;
+    }
+    #gameCanvas {
+      display:block;
+      width:100%;
+      height:100%;
+      max-width:100%;
+      max-height:100%;
+      position:relative;
+      z-index:0;
+      /* maxWidth diset dari JS pakai CONFIG.maxWidth */
+    }
+    #btns {
+      display:flex; justify-content:center;
+      gap:clamp(8px, 2.5vw, 16px);
+      padding:clamp(6px, 1.5vh, 10px) clamp(8px, 2.5vw, 12px);
+      width:100%;
+      position:relative;
+      z-index:10;
+    }
+    .btn {
+      flex:1; max-width:180px;
+      padding:clamp(10px, 2.2vh, 13px) 0;
+      border-radius:12px;
+      font-family:monospace; font-size:clamp(12px, 2.6vw, 14px); font-weight:bold;
+      text-align:center; cursor:pointer; border:2px solid;
+      -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+    }
+    #btnJump { background:rgba(255,79,218,0.2); border-color:rgba(255,79,218,0.8); color:#ff4fda; }
+    #btnJump:active { background:rgba(255,79,218,0.5); }
+    #btnDash  { background:rgba(255,140,0,0.2);  border-color:rgba(255,140,0,0.8);  color:#ff8c00; }
+    #btnDash:active  { background:rgba(255,140,0,0.55); }
+    #hint {
+      color:#334455; font-family:monospace; font-size:clamp(8px, 2.2vw, 9px);
+      text-align:center; padding:4px 8px; transition:opacity 1s;
+      position:relative;
+      z-index:10;
+    }
+    body.compact #hint{ display:none; }
+  </style>
+</head>
+<body>
+
+<div id="gameWrap">
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<div id="btns">
+  <div class="btn" id="btnJump">â–²  JUMP</div>
+  <div class="btn" id="btnDash">âš¡  DASH</div>
+</div>
+
+<div id="hint">
+  SPACE/â†‘ = jump &nbsp;Â·&nbsp; â†’ / hold SPACE = dash &nbsp;Â·&nbsp; double tap = high jump
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
+<script src="config.js"></script>
+<script>
+  // Apply responsive layout sebelum game load
+  function _oyenLayout(){
+    var mw = (CONFIG && CONFIG.maxWidth) ? CONFIG.maxWidth : 800;
+    var wrap = document.getElementById('gameWrap');
+    var btns = document.getElementById('btns');
+    var hint = document.getElementById('hint');
+
+    wrap.style.maxWidth = mw + 'px';
+    btns.style.maxWidth = mw + 'px';
+
+    // Fit canvas area into viewport leftover (avoid UI clip on small height)
+    // ultra small window: hide hint, allow scroll if still tight
+    var vpH = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+    var compact = vpH < 520;
+    document.body.classList.toggle('compact', compact);
+
+    var uiH = 0;
+    if (btns && btns.style.display !== 'none') uiH += btns.getBoundingClientRect().height;
+    // hint maybe hidden by .compact; only count when visible
+    if (hint && hint.offsetParent !== null) uiH += hint.getBoundingClientRect().height;
+
+    var availH = Math.max(120, vpH - uiH);
+    wrap.style.height = availH + 'px';
+
+    // if UI itself exceed viewport, allow vertical scroll instead of hard clipping
+    document.body.style.overflowY = (vpH - uiH) < 180 ? 'auto' : 'hidden';
+
+    // Phaser FIT scale recalc (needed when UI hide/show without window resize)
+    if (window._oyenGame && window._oyenGame.scale && window._oyenGame.scale.refresh) {
+      window._oyenGame.scale.refresh();
+    }
+  }
+  window._oyenLayout = _oyenLayout;
+  window.addEventListener('resize', _oyenLayout);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', _oyenLayout);
+  _oyenLayout();
+</script>
+<script src="game.js"></script>
+<script>
+  // Hide buttons on desktop
+  function isTouch(){ return ('ontouchstart' in window)||(navigator.maxTouchPoints>0); }
+  if(!isTouch() && !(CONFIG && CONFIG.showButtons)) {
+    document.getElementById('btns').style.display='none';
+    if(window._oyenLayout) window._oyenLayout();
+  }
+  if(CONFIG && CONFIG.showButtons===false) {
+    document.getElementById('btns').style.display='none';
+    if(window._oyenLayout) window._oyenLayout();
+  }
+
+  var btnJ=document.getElementById('btnJump');
+  var btnD=document.getElementById('btnDash');
+
+  btnJ.addEventListener('touchstart',function(e){e.preventDefault();e.stopPropagation();if(window._oyenScene)window._oyenScene._jump();},{passive:false});
+  btnJ.addEventListener('mousedown', function(e){if(e){e.preventDefault();e.stopPropagation();} if(window._oyenScene)window._oyenScene._jump();});
+
+  btnD.addEventListener('touchstart', function(e){e.preventDefault();e.stopPropagation();if(window._oyenScene)window._oyenScene.holdDash=true; },{passive:false});
+  btnD.addEventListener('touchend',   function(e){e.preventDefault();e.stopPropagation();if(window._oyenScene)window._oyenScene.holdDash=false;},{passive:false});
+  btnD.addEventListener('touchcancel',function(e){if(e){e.preventDefault();e.stopPropagation();} if(window._oyenScene)window._oyenScene.holdDash=false;},{passive:false});
+  btnD.addEventListener('mousedown',  function(e){if(e){e.preventDefault();e.stopPropagation();} if(window._oyenScene)window._oyenScene.holdDash=true; });
+  btnD.addEventListener('mouseup',    function(e){if(e){e.preventDefault();e.stopPropagation();} if(window._oyenScene)window._oyenScene.holdDash=false;});
+
+  setTimeout(function(){
+    var h=document.getElementById('hint');
+    if(h) h.style.opacity='0';
+  },8000);
+</script>
+</body>
+</html>
+

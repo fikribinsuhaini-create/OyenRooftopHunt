@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/png" href="assets/oyen-sleep.png">
+  <link rel="apple-touch-icon" href="assets/oyen-sleep.png">
+  <title>Oyen Rooftop Hunt 🐱</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body {
+      width:100%; height:100%;
+      background:#050510;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:flex-start;
+      overflow:hidden;
+      user-select:none; -webkit-user-select:none;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    #gameWrap{
+      width:100%;
+      flex:1 1 auto;
+      min-height:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      z-index:0;
+    }
+    #gameCanvas {
+      display:block;
+      width:100%;
+      height:100%;
+      max-width:100%;
+      max-height:100%;
+      position:relative;
+      z-index:0;
+    }
+
+    #btns {
+      display:flex; justify-content:center;
+      gap:clamp(8px, 2.5vw, 16px);
+      padding:clamp(6px, 1.5vh, 10px) clamp(8px, 2.5vw, 12px);
+      width:100%;
+      position:relative;
+      z-index:10;
+    }
+    .btn {
+      flex:1; max-width:180px;
+      padding:clamp(10px, 2.2vh, 13px) 0;
+      border-radius:12px;
+      font-family:monospace; font-size:clamp(12px, 2.6vw, 14px); font-weight:bold;
+      text-align:center; cursor:pointer; border:2px solid;
+      -webkit-tap-highlight-color:transparent;
+      touch-action:manipulation;
+      user-select:none;
+    }
+    #btnJump { background:rgba(255,79,218,0.2); border-color:rgba(255,79,218,0.8); color:#ff4fda; }
+    #btnJump:active { background:rgba(255,79,218,0.5); }
+    #btnDash  { background:rgba(255,140,0,0.2);  border-color:rgba(255,140,0,0.8);  color:#ff8c00; }
+    #btnDash:active  { background:rgba(255,140,0,0.55); }
+
+    #hint {
+      color:#334455; font-family:monospace; font-size:clamp(8px, 2.2vw, 9px);
+      text-align:center; padding:4px 8px; transition:opacity 1s;
+      position:relative;
+      z-index:10;
+    }
+    body.compact #hint{ display:none; }
+
+    #landing{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:50;
+      background:radial-gradient(1200px 600px at 50% 45%, rgba(96,64,255,0.18), rgba(5,5,16,0.92));
+      padding:18px;
+    }
+    #landing.hidden{ display:none; }
+    #landingCard{
+      width:min(520px, 92vw);
+      border-radius:18px;
+      border:2px solid rgba(255,79,218,0.6);
+      background:rgba(8,8,24,0.86);
+      box-shadow:0 18px 60px rgba(0,0,0,0.55);
+      padding:18px 18px 16px;
+      text-align:center;
+      font-family:monospace;
+      color:#cfe3ff;
+    }
+    #landingTitle{
+      font-size:20px;
+      font-weight:800;
+      color:#ff4fda;
+      letter-spacing:0.5px;
+      margin-bottom:8px;
+    }
+    #landingImg{
+      width:96px;
+      height:96px;
+      object-fit:contain;
+      display:block;
+      margin:2px auto 10px;
+      filter: drop-shadow(0 10px 24px rgba(0,0,0,0.5));
+      image-rendering:auto;
+    }
+    #landingSub{
+      font-size:11px;
+      color:#9db3d9;
+      margin-bottom:14px;
+      line-height:1.45;
+    }
+    #landingHow{
+      text-align:left;
+      font-size:12px;
+      line-height:1.55;
+      background:rgba(0,0,0,0.25);
+      border:1px solid rgba(0,229,255,0.25);
+      border-radius:12px;
+      padding:12px 12px;
+      margin-bottom:14px;
+    }
+    #landingHow b{ color:#ffe082; }
+    #btnStart{
+      display:inline-block;
+      padding:14px 0;
+      width:min(320px, 88%);
+      border-radius:14px;
+      cursor:pointer;
+      border:2px solid rgba(0,229,255,0.75);
+      background:rgba(0,229,255,0.16);
+      color:#00e5ff;
+      font-weight:900;
+      letter-spacing:1px;
+      -webkit-tap-highlight-color:transparent;
+      user-select:none;
+      touch-action:manipulation;
+    }
+    #btnStart:active{ background:rgba(0,229,255,0.32); }
+    #landingNote{
+      margin-top:10px;
+      font-size:10px;
+      color:#6f86ad;
+    }
+  </style>
+</head>
+<body>
+
+<div id="gameWrap">
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<div id="landing">
+  <div id="landingCard">
+    <img id="landingImg" src="assets/oyen-sleep.png" alt="Oyen">
+    <div id="landingTitle">OYEN ROOFTOP HUNT</div>
+    <div id="landingSub">Tekan <b>MAIN</b> untuk mula.</div>
+    <div id="landingHow">
+      <div><b>PC</b>: <b>SPACE</b> / <b>↑</b> = Jump, tahan <b>SPACE</b> / <b>→</b> = Dash</div>
+      <div><b>Mobile</b>: Tap <b>JUMP</b>, hold <b>DASH</b>. Double tap = High Jump</div>
+      <div><b>Goal</b>: Kutip tuna/treats, elak obstacle, survive!</div>
+    </div>
+    <div id="btnStart">MAIN</div>
+    <div id="landingNote">Tip: rotate landscape untuk view best.</div>
+  </div>
+</div>
+
+<div id="btns">
+  <div class="btn" id="btnJump">▲  JUMP</div>
+  <div class="btn" id="btnDash">⚡  DASH</div>
+</div>
+
+<div id="hint">
+  SPACE/↑ = jump · → / hold SPACE = dash · double tap = high jump
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
+<script src="config.js"></script>
+<script>
+  function _oyenLayout(){
+    var mw = (CONFIG && CONFIG.maxWidth) ? CONFIG.maxWidth : 800;
+    var wrap = document.getElementById('gameWrap');
+    var btns = document.getElementById('btns');
+    var hint = document.getElementById('hint');
+
+    wrap.style.maxWidth = mw + 'px';
+    if (btns) btns.style.maxWidth = mw + 'px';
+
+    var vpH = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+    var compact = vpH < 520;
+    document.body.classList.toggle('compact', compact);
+
+    var uiH = 0;
+    if (btns && btns.style.display !== 'none') uiH += btns.getBoundingClientRect().height;
+    if (hint && hint.offsetParent !== null) uiH += hint.getBoundingClientRect().height;
+
+    var availH = Math.max(120, vpH - uiH);
+    wrap.style.height = availH + 'px';
+
+    document.body.style.overflowY = (vpH - uiH) < 180 ? 'auto' : 'hidden';
+
+    if (window._oyenGame && window._oyenGame.scale && window._oyenGame.scale.refresh) {
+      window._oyenGame.scale.refresh();
+    }
+  }
+  window._oyenLayout = _oyenLayout;
+  window.addEventListener('resize', _oyenLayout);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', _oyenLayout);
+  _oyenLayout();
+</script>
+<script>
+  function isTouch(){ return ('ontouchstart' in window)||(navigator.maxTouchPoints>0); }
+
+  var btns=document.getElementById('btns');
+  var hint=document.getElementById('hint');
+  var btnJ=document.getElementById('btnJump');
+  var btnD=document.getElementById('btnDash');
+  var btnStart=document.getElementById('btnStart');
+  var landing=document.getElementById('landing');
+  var _started=false;
+
+  // optional: hide buttons on desktop
+  if(!isTouch() && !(CONFIG && CONFIG.showButtons)) {
+    if(btns) btns.style.display='none';
+    if(window._oyenLayout) window._oyenLayout();
+  }
+  if(CONFIG && CONFIG.showButtons===false) {
+    if(btns) btns.style.display='none';
+    if(window._oyenLayout) window._oyenLayout();
+  }
+
+  function _startGame(){
+    if(_started) return;
+    _started=true;
+    if(landing) landing.classList.add('hidden');
+    if(window._oyenLayout) window._oyenLayout();
+    var s=document.createElement('script');
+    s.src='game.js';
+    document.body.appendChild(s);
+    setTimeout(function(){
+      if(hint) hint.style.opacity='0';
+    },8000);
+  }
+
+  if(btnStart){
+    btnStart.addEventListener('touchstart',function(e){e.preventDefault();e.stopPropagation();_startGame();},{passive:false});
+    btnStart.addEventListener('mousedown', function(e){if(e){e.preventDefault();e.stopPropagation();}_startGame();});
+  }
+
+  if(btnJ){
+    btnJ.addEventListener('touchstart',function(e){e.preventDefault();e.stopPropagation();if(window._oyenScene)window._oyenScene._jump();},{passive:false});
+    btnJ.addEventListener('mousedown', function(e){if(e){e.preventDefault();e.stopPropagation();} if(window._oyenScene)window._oyenScene._jump();});
+  }
+  if(btnD){
+    btnD.addEventListener('touchstart', function(e){e.preventDefault();e.stopPropagation();if(window._oyenScene)window._oyenScene.holdDash=true; },{passive:false});
+    btnD.addEventListener('touchend',   function(e){e.preventDefault();e.stopPropagation();if(window._oyenScene)window._oyenScene.holdDash=false;},{passive:false});
+    btnD.addEventListener('touchcancel',function(e){if(e){e.preventDefault();e.stopPropagation();} if(window._oyenScene)window._oyenScene.holdDash=false;},{passive:false});
+    btnD.addEventListener('mousedown',  function(e){if(e){e.preventDefault();e.stopPropagation();} if(window._oyenScene)window._oyenScene.holdDash=true; });
+    btnD.addEventListener('mouseup',    function(e){if(e){e.preventDefault();e.stopPropagation();} if(window._oyenScene)window._oyenScene.holdDash=false;});
+  }
+</script>
+</body>
+</html>
