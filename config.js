@@ -112,4 +112,12 @@ const CONFIG = {
 
   // ── Mobile buttons ───────────────────────────────────────
   showButtons   : false,
+
+  // Touch controls (phone)
+  // kanan screen = dash (no jump), kiri screen = jump
+  touch: {
+    dashZoneX   : 0.62, // >62% width = dash zone
+    holdDashMs  : 160,  // hold dekat kiri (fallback)
+    swipeDashPx : 28,   // swipe kanan dekat kiri (fallback)
+  },
 };

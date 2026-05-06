@@ -130,10 +130,23 @@ class GameScene extends Phaser.Scene {
     this.cursors.up.on('down',()=>this._jump());
 
     // Touch
-    this._touchActive=false;this._holdTimer=null;
+    const T=CONFIG.touch||{};
+    this._dashZoneX=W*(T.dashZoneX||0.62);
+    this._holdDashMs=(T.holdDashMs||200);
+    this._swipeDashPx=(T.swipeDashPx||40);
+
+    this._touchActive=false;this._holdTimer=null;this._touchDashOnly=false;
     this.input.on('pointerdown',(ptr)=>{
       this._touchActive=true;
       this._touchStartX=ptr.x;this._touchStartY=ptr.y;
+      this._touchDashOnly = ptr.x > this._dashZoneX;
+
+      // Right-side dash zone (no jump)
+      if(this._touchDashOnly){
+        this.holdDash=true;
+        return;
+      }
+
       const now=this.time.now;
       if(now-this.lastTap<300&&this.jumpCount===1){
         this.cat.body.setVelocityY(CONFIG.doubleJumpVel);
@@ -141,13 +154,14 @@ class GameScene extends Phaser.Scene {
         for(let i=0;i<8;i++)this._part(this.cat.x,this.cat.y+18,rndF(-90,90),rndF(10,80),'#ffffff',0.8,0.35);
       } else { this._jump(); }
       this.lastTap=now;
-      this._holdTimer=this.time.delayedCall(200,()=>{if(this._touchActive)this.holdDash=true;});
+      this._holdTimer=this.time.delayedCall(this._holdDashMs,()=>{if(this._touchActive)this.holdDash=true;});
     });
     this.input.on('pointermove',(ptr)=>{
       if(!this._touchActive)return;
-      if(ptr.x-this._touchStartX>40&&Math.abs(ptr.y-this._touchStartY)<60)this.holdDash=true;
+      if(this._touchDashOnly) return;
+      if(ptr.x-this._touchStartX>this._swipeDashPx&&Math.abs(ptr.y-this._touchStartY)<60)this.holdDash=true;
     });
-    this.input.on('pointerup',()=>{this._touchActive=false;this.holdDash=false;if(this._holdTimer)this._holdTimer.remove();});
+    this.input.on('pointerup',()=>{this._touchActive=false;this._touchDashOnly=false;this.holdDash=false;if(this._holdTimer)this._holdTimer.remove();});
 
     window._oyenScene=this;
 
